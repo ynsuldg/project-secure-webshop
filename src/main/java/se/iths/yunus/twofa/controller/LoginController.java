@@ -1,6 +1,7 @@
 package se.iths.yunus.twofa.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -26,7 +27,6 @@ public class LoginController {
     private final AppUserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final TwoFactorService twoFactorService;
-
     private final SecurityContextRepository securityContextRepository =
             new HttpSessionSecurityContextRepository();
 
@@ -52,6 +52,7 @@ public class LoginController {
     public String login(@RequestParam String email,
                         @RequestParam String password,
                         HttpServletRequest request,
+                        HttpServletResponse response,
                         Model model) {
 
         AppUser user = repository.findByEmail(email).orElse(null);
@@ -69,21 +70,16 @@ public class LoginController {
         if (user.isTwoFactorEnabled()) {
             HttpSession session = request.getSession(true);
             session.setAttribute("2fa_user_email", user.getEmail());
-
-            System.out.println("2FA SESSION SET FOR: " + user.getEmail());
-
             return "redirect:/verify-2fa";
         }
 
-        authenticateUser(user, request);
+        authenticateUser(user, request, response);
         return "redirect:/";
     }
 
     @GetMapping("/verify-2fa")
     public String verify2faPage(HttpSession session, Model model) {
         String email = (String) session.getAttribute("2fa_user_email");
-
-        System.out.println("VERIFY PAGE SESSION EMAIL: " + email);
 
         if (email == null) {
             model.addAttribute("error", "Session expired. Please log in again.");
@@ -96,6 +92,7 @@ public class LoginController {
     @PostMapping("/verify-2fa")
     public String verify2fa(@RequestParam String code,
                             HttpServletRequest request,
+                            HttpServletResponse response,
                             Model model) {
 
         HttpSession session = request.getSession(false);
@@ -106,9 +103,6 @@ public class LoginController {
         }
 
         String email = (String) session.getAttribute("2fa_user_email");
-
-        System.out.println("VERIFY POST SESSION EMAIL: " + email);
-        System.out.println("CODE ENTERED: " + code);
 
         if (email == null) {
             model.addAttribute("error", "Session expired. Please log in again.");
@@ -138,13 +132,14 @@ public class LoginController {
         }
 
         session.removeAttribute("2fa_user_email");
-        authenticateUser(user, request);
+        authenticateUser(user, request, response);
 
         return "redirect:/";
     }
 
     private void authenticateUser(AppUser user,
-                                  HttpServletRequest request) {
+                                  HttpServletRequest request,
+                                  HttpServletResponse response) {
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
@@ -157,10 +152,6 @@ public class LoginController {
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
 
-        securityContextRepository.saveContext(
-                context,
-                request,
-                null
-        );
+        securityContextRepository.saveContext(context, request, response);
     }
 }
