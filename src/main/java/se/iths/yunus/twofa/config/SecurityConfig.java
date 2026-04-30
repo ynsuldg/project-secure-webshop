@@ -18,13 +18,12 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/",
                                 "/register",
                                 "/login",
                                 "/verify-2fa",
-                                "/h2-console/**",
-                                "/css/**"
+                                "/h2-console/**"
                         ).permitAll()
+                        .requestMatchers("/").authenticated()
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf
@@ -46,8 +45,11 @@ public class SecurityConfig {
     @Bean
     public AuthenticationProvider authenticationProvider(AppUserDetailsService userDetailsService,
                                                          PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(userDetailsService);
+
         provider.setPasswordEncoder(passwordEncoder);
+
         return provider;
     }
 
