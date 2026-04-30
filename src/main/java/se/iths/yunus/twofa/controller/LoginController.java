@@ -1,7 +1,6 @@
 package se.iths.yunus.twofa.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -45,54 +44,50 @@ public class LoginController {
     }
 
     @GetMapping("/login")
-    public String loginPage(@RequestParam(required = false) String logout,
-                            Model model) {
-        if (logout != null) {
-            model.addAttribute("message", "You have been logged out.");
-        }
+    public String loginPage(Model model) {
         return "login";
     }
 
     @PostMapping("/login")
     public String login(@RequestParam String email,
                         @RequestParam String password,
-                        HttpSession session,
-                        Model model,
                         HttpServletRequest request,
-                        HttpServletResponse response) {
-
-        System.out.println("LOGIN POST HIT: " + email);
+                        Model model) {
 
         AppUser user = repository.findByEmail(email).orElse(null);
 
         if (user == null) {
-            System.out.println("User not found");
             model.addAttribute("error", "User not found.");
             return "login";
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            System.out.println("Wrong password");
             model.addAttribute("error", "Wrong password.");
             return "login";
         }
 
-        System.out.println("Password correct");
-        System.out.println("2FA enabled: " + user.isTwoFactorEnabled());
-
         if (user.isTwoFactorEnabled()) {
+            HttpSession session = request.getSession(true);
             session.setAttribute("2fa_user_email", user.getEmail());
+
+            System.out.println("2FA SESSION SET FOR: " + user.getEmail());
+
             return "redirect:/verify-2fa";
         }
 
-        authenticateUser(user, request, response);
+        authenticateUser(user, request);
         return "redirect:/";
     }
 
     @GetMapping("/verify-2fa")
-    public String verify2faPage(HttpSession session) {
-        if (session.getAttribute("2fa_user_email") == null) {
-            return "redirect:/login";
+    public String verify2faPage(HttpSession session, Model model) {
+        String email = (String) session.getAttribute("2fa_user_email");
+
+        System.out.println("VERIFY PAGE SESSION EMAIL: " + email);
+
+        if (email == null) {
+            model.addAttribute("error", "Session expired. Please log in again.");
+            return "login";
         }
 
         return "verify-2fa";
@@ -100,25 +95,35 @@ public class LoginController {
 
     @PostMapping("/verify-2fa")
     public String verify2fa(@RequestParam String code,
-                            HttpSession session,
-                            Model model,
                             HttpServletRequest request,
-                            HttpServletResponse response) {
+                            Model model) {
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null) {
+            model.addAttribute("error", "Session expired. Please log in again.");
+            return "login";
+        }
 
         String email = (String) session.getAttribute("2fa_user_email");
 
+        System.out.println("VERIFY POST SESSION EMAIL: " + email);
+        System.out.println("CODE ENTERED: " + code);
+
         if (email == null) {
-            return "redirect:/login";
+            model.addAttribute("error", "Session expired. Please log in again.");
+            return "login";
         }
 
         AppUser user = repository.findByEmail(email).orElse(null);
 
         if (user == null || user.getTwoFactorSecret() == null) {
-            return "redirect:/login";
+            model.addAttribute("error", "Could not verify user.");
+            return "login";
         }
 
         if (!code.matches("\\d{6}")) {
-            model.addAttribute("error", "Code must be 6 digits.");
+            model.addAttribute("error", "Code must be exactly 6 digits.");
             return "verify-2fa";
         }
 
@@ -128,19 +133,18 @@ public class LoginController {
         );
 
         if (!valid) {
-            model.addAttribute("error", "Invalid authentication code.");
+            model.addAttribute("error", "Invalid authentication code. Try again.");
             return "verify-2fa";
         }
 
         session.removeAttribute("2fa_user_email");
-        authenticateUser(user, request, response);
+        authenticateUser(user, request);
 
         return "redirect:/";
     }
 
     private void authenticateUser(AppUser user,
-                                  HttpServletRequest request,
-                                  HttpServletResponse response) {
+                                  HttpServletRequest request) {
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
@@ -153,6 +157,10 @@ public class LoginController {
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
 
-        securityContextRepository.saveContext(context, request, response);
+        securityContextRepository.saveContext(
+                context,
+                request,
+                null
+        );
     }
 }
