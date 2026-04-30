@@ -4,21 +4,16 @@ import jakarta.persistence.*;
 
 @Entity
 public class AppUser {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @Column(unique = true, nullable = false)
     private String email;
-
     @Column(nullable = false)
     private String password;
-
     private String role = "USER";
-
     private boolean twoFactorEnabled;
-
+    @Column(nullable = true)
     private String twoFactorSecret;
 
     public AppUser(String email, String password, String role, boolean twoFactorEnabled, String twoFactorSecret) {

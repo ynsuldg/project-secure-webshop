@@ -13,7 +13,6 @@ import java.util.List;
 
 @Service
 public class AppUserDetailsService implements UserDetailsService {
-
     private final AppUserRepository repository;
 
     public AppUserDetailsService(AppUserRepository repository) {

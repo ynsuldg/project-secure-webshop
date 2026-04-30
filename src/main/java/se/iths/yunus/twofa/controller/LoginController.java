@@ -23,7 +23,6 @@ import java.util.List;
 
 @Controller
 public class LoginController {
-
     private final AppUserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final TwoFactorService twoFactorService;
@@ -58,12 +57,12 @@ public class LoginController {
         AppUser user = repository.findByEmail(email).orElse(null);
 
         if (user == null) {
-            model.addAttribute("error", "User not found.");
+            model.addAttribute("error", "Invalid email or password.");
             return "login";
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            model.addAttribute("error", "Wrong password.");
+            model.addAttribute("error", "Invalid email or password.");
             return "login";
         }
 

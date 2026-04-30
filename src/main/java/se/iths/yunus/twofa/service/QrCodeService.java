@@ -11,7 +11,6 @@ import java.util.Base64;
 
 @Service
 public class QrCodeService {
-
     public String generateQrCodeBase64(String text) {
         try {
             BitMatrix matrix = new MultiFormatWriter()

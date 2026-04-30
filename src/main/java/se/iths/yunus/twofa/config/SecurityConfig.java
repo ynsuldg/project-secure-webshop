@@ -12,25 +12,16 @@ import se.iths.yunus.twofa.service.AppUserDetailsService;
 
 @Configuration
 public class SecurityConfig {
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .authorizeHttpRequests(auth -> auth
+        http.authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/register",
                                 "/login",
-                                "/verify-2fa",
-                                "/h2-console/**"
+                                "/verify-2fa"
                         ).permitAll()
                         .requestMatchers("/").authenticated()
                         .anyRequest().authenticated()
-                )
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/h2-console/**")
-                )
-                .headers(headers -> headers
-                        .frameOptions(frame -> frame.disable())
                 )
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout
@@ -45,8 +36,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationProvider authenticationProvider(AppUserDetailsService userDetailsService,
                                                          PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider(userDetailsService);
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
 
         provider.setPasswordEncoder(passwordEncoder);
 

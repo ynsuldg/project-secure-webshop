@@ -13,7 +13,6 @@ import se.iths.yunus.twofa.service.TwoFactorService;
 
 @Controller
 public class RegisterController {
-
     private final AppUserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final TwoFactorService twoFactorService;
@@ -37,8 +36,7 @@ public class RegisterController {
     @PostMapping("/register")
     public String register(@RequestParam String email,
                            @RequestParam String password,
-                           @RequestParam(required = false) boolean enable2fa,
-                           Model model) {
+                           @RequestParam(required = false) boolean enable2fa, Model model) {
 
         if (repository.findByEmail(email).isPresent()) {
             model.addAttribute("error", "Email already exists.");
