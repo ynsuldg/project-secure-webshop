@@ -1,4 +1,4 @@
-package se.iths.yunus.twofa.Controller;
+package se.iths.yunus.twofa.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -64,7 +64,7 @@ public class LoginController {
         AppUser user = repository.findByEmail(email).orElse(null);
 
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            model.addAttribute("error", "Invalid email or password");
+            model.addAttribute("error", "Invalid email or password.");
             return "login";
         }
 
@@ -101,14 +101,14 @@ public class LoginController {
 
         AppUser user = repository.findByEmail(email).orElse(null);
 
-        if (user == null) {
+        if (user == null || user.getTwoFactorSecret() == null) {
             return "redirect:/login";
         }
 
         boolean valid = twoFactorService.verifyCode(user.getTwoFactorSecret(), code);
 
         if (!valid) {
-            model.addAttribute("error", "Invalid authentication code");
+            model.addAttribute("error", "Invalid authentication code.");
             return "verify-2fa";
         }
 
@@ -122,7 +122,7 @@ public class LoginController {
                                   HttpServletRequest request,
                                   HttpServletResponse response) {
 
-        UsernamePasswordAuthenticationToken auth =
+        UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
                         user.getEmail(),
                         null,
@@ -130,7 +130,7 @@ public class LoginController {
                 );
 
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(auth);
+        context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
 
         securityContextRepository.saveContext(context, request, response);

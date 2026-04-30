@@ -1,4 +1,4 @@
-package se.iths.yunus.twofa.Controller;
+package se.iths.yunus.twofa.controller;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -40,6 +40,11 @@ public class RegisterController {
                            @RequestParam(required = false) boolean enable2fa,
                            Model model) {
 
+        if (repository.findByEmail(email).isPresent()) {
+            model.addAttribute("error", "Email already exists.");
+            return "register";
+        }
+
         AppUser user = new AppUser();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
@@ -49,12 +54,12 @@ public class RegisterController {
             String secret = twoFactorService.generateSecret();
             user.setTwoFactorSecret(secret);
 
-            String qrUrl = twoFactorService.generateQrUrl(email, secret);
-            String qrBase64 = qrCodeService.generateQrCodeBase64(qrUrl);
-
             repository.save(user);
 
-            model.addAttribute("qrCode", qrBase64);
+            String qrUrl = twoFactorService.generateQrUrl(email, secret);
+            String qrCode = qrCodeService.generateQrCodeBase64(qrUrl);
+
+            model.addAttribute("qrCode", qrCode);
             model.addAttribute("secret", secret);
             return "show-qr";
         }

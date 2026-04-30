@@ -17,7 +17,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/register", "/login", "/verify-2fa", "/css/**", "/h2-console/**").permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/register",
+                                "/login",
+                                "/verify-2fa",
+                                "/h2-console/**",
+                                "/css/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf
