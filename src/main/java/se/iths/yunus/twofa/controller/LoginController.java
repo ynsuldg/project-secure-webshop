@@ -61,12 +61,24 @@ public class LoginController {
                         HttpServletRequest request,
                         HttpServletResponse response) {
 
+        System.out.println("LOGIN POST HIT: " + email);
+
         AppUser user = repository.findByEmail(email).orElse(null);
 
-        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            model.addAttribute("error", "Invalid email or password.");
+        if (user == null) {
+            System.out.println("User not found");
+            model.addAttribute("error", "User not found.");
             return "login";
         }
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            System.out.println("Wrong password");
+            model.addAttribute("error", "Wrong password.");
+            return "login";
+        }
+
+        System.out.println("Password correct");
+        System.out.println("2FA enabled: " + user.isTwoFactorEnabled());
 
         if (user.isTwoFactorEnabled()) {
             session.setAttribute("2fa_user_email", user.getEmail());
@@ -87,7 +99,7 @@ public class LoginController {
     }
 
     @PostMapping("/verify-2fa")
-    public String verify2fa(@RequestParam int code,
+    public String verify2fa(@RequestParam String code,
                             HttpSession session,
                             Model model,
                             HttpServletRequest request,
@@ -105,7 +117,15 @@ public class LoginController {
             return "redirect:/login";
         }
 
-        boolean valid = twoFactorService.verifyCode(user.getTwoFactorSecret(), code);
+        if (!code.matches("\\d{6}")) {
+            model.addAttribute("error", "Code must be 6 digits.");
+            return "verify-2fa";
+        }
+
+        boolean valid = twoFactorService.verifyCode(
+                user.getTwoFactorSecret(),
+                Integer.parseInt(code)
+        );
 
         if (!valid) {
             model.addAttribute("error", "Invalid authentication code.");
